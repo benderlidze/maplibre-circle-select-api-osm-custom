@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>MapLibre Demotile - OMT</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='maplibre/maplibre-gl.js'></script>
+    <script src="maplibre/turf.js"></script>
+    <link href='maplibre/maplibre-gl.css' rel='stylesheet' />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #menu {
+            position: absolute;
+            top: 90px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+
+        #circle-selection {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map">
+        <div id="circle-selection"></div>
+        <div id="menu"></div>
+
+    </div>
+
+    <script>
+
+        const appData = {
+            markers: [],
+            circle: {
+                radius: 100,
+                lat: 19.531402305502922,
+                lon: 96.01259488396033
+            }
+        }
+        const tileUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const apiUrl = `response_1711541487745.json`
+        const menu = document.getElementById('menu');
+        const circleSelectionDiv = document.getElementById('circle-selection');
+
+        const style = {
+            "version": 8,
+            "sources": {
+                "osm": {
+                    "type": "raster",
+                    "tiles": [tileUrl],
+                    "tileSize": 256,
+                    "attribution": "&copy; OpenStreetMap Contributors",
+                    "maxzoom": 19
+                }
+            },
+            "layers": [
+                {
+                    "id": "osm",
+                    "type": "raster",
+                    "source": "osm" // This must match the source key above
+                }
+            ]
+        };
+
+        // Initialise the map
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: style,
+            center: { lng: 96.01259488396033, lat: 19.531402305502922 },
+            zoom: 3
+        });
+
+        // Add the navigation control
+        map.addControl(new maplibregl.NavigationControl());
+
+        const canvas = map.getCanvasContainer();
+
+        const geojson = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [appData.circle.lon, appData.circle.lat]
+                    }
+                }
+            ]
+        };
+
+
+        map.on('load', () => {
+
+            map.addSource('points', {
+                'type': 'geojson',
+                'data': {
+                    "type": "FeatureCollection",
+                    "features": []
+                }
+            });
+
+            map.addLayer({
+                'id': 'points',
+                'type': 'circle',
+                'source': 'points',
+                'paint': {
+                    'circle-radius': 5,
+                    'circle-color': '#007cbf'
+                }
+            });
+
+            // map.addSource('circle-selection', {
+            //     'type': 'geojson',
+            //     'data': {
+            //         "type": "FeatureCollection",
+            //         "features": []
+            //     }
+            // });
+            // map.addLayer({
+            //     'id': 'circle-selection',
+            //     'type': 'circle',
+            //     'source': 'circle-selection',
+            //     'paint': {
+            //         'circle-radius': 100,
+            //         'circle-color': '#ff0000',
+            //         'circle-opacity': 0.5
+            //     }
+            // });
+
+            map.addSource('point', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Point',
+                        'coordinates': [appData.circle.lon, appData.circle.lat]
+                    }
+                }
+            });
+            map.addLayer({
+                'id': 'point',
+                'type': 'circle',
+                'source': 'point',
+                'paint': {
+                    'circle-radius': 10,
+                    'circle-color': '#F84C4C' // red color
+                }
+            });
+
+            map.addSource('circle', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'Feature',
+                    'geometry': {
+                        'type': 'Polygon',
+                        'coordinates': []
+                    }
+                }
+            });
+            map.addLayer({
+                'id': 'circle',
+                'type': 'fill',
+                'source': 'circle',
+                'layout': {},
+                'paint': {
+                    'fill-color': '#F84C4C',
+                    'fill-opacity': 0.5
+                }
+            });
+
+            // When the cursor enters a feature in
+            // the point layer, prepare for dragging.
+            map.on('mouseenter', 'point', () => {
+                map.setPaintProperty('point', 'circle-color', '#3bb2d0');
+                canvas.style.cursor = 'move';
+            });
+
+            map.on('mouseleave', 'point', () => {
+                map.setPaintProperty('point', 'circle-color', '#3887be');
+                canvas.style.cursor = '';
+            });
+
+            map.on('mousedown', 'point', (e) => {
+                // Prevent the default map drag behavior.
+                e.preventDefault();
+
+                canvas.style.cursor = 'grab';
+
+                map.on('mousemove', onMove);
+                map.once('mouseup', onUp);
+            });
+
+            map.on('touchstart', 'point', (e) => {
+                if (e.points.length !== 1) return;
+
+                // Prevent the default map drag behavior.
+                e.preventDefault();
+
+                map.on('touchmove', onMove);
+                map.once('touchend', onUp);
+            });
+
+            map.on('mouseenter', 'points', (e) => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            map.on('mouseleave', 'points', (e) => {
+                map.getCanvas().style.cursor = '';
+            });
+
+            map.on('click', 'points', (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const description = e.features[0].properties.description;
+
+                new maplibregl.Popup()
+                    .setLngLat(coordinates)
+                    .setHTML(description)
+                    .addTo(map);
+            });
+
+
+            loadData();
+        })
+
+
+        function onMove(e) {
+            const { lng, lat } = e.lngLat;
+            updateCircle({ lat, lng });
+        }
+
+        function onUp(e) {
+            const coords = e.lngLat;
+            canvas.style.cursor = '';
+            // Unbind mouse/touch events
+            map.off('mousemove', onMove);
+            map.off('touchmove', onMove);
+        }
+
+        const updateCircle = ({ lat, lng }) => {
+            // Set a UI indicator for dragging.
+            canvas.style.cursor = 'grabbing';
+            // Update the Point feature in `geojson` coordinates
+            // and call setData to the source layer `point` on it.
+            geojson.features[0].geometry.coordinates = [lng, lat];
+            appData.circle.lat = lat;
+            appData.circle.lon = lng;
+            const circle = turf.circle([lng, lat], appData.circle.radius, {
+                steps: appData.circle.radius,
+                units: 'meters'
+            });
+            map.getSource('point').setData(geojson);
+            map.getSource('circle').setData(circle);
+        }
+
+
+        const loadData = () => {
+
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+
+                    const bounds = new maplibregl.LngLatBounds();
+                    const pins = data.map((item, id) => {
+                        const [lat, lon] = item.latlon.split(',').map(parseFloat);
+                        bounds.extend([lon, lat]);
+
+                        appData.markers.push({
+                            id: item.id,
+                            lat,
+                            lon,
+                            time: item.time,
+                            title: item.title,
+                        });
+
+                        return {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [lon, lat]
+                            },
+                            "properties": {
+                                "id": item.id,
+                                "time": item.time,
+                                "description": item.title
+                            }
+                        }
+                    })
+                    const geojson = {
+                        "type": "FeatureCollection",
+                        "features": pins
+                    };
+                    map.getSource('points').setData(geojson);
+                    map.fitBounds(bounds, {
+                        padding: 50
+                    });
+
+                    renderItemsMenu(appData.markers);
+
+                    createCircle();
+                })
+        }
+
+        const createCircle = () => {
+            const circle = document.createElement('div');
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = true;
+            input.addEventListener('change', (e) => {
+
+            });
+            const label = document.createElement('label');
+            label.textContent = 'Circle Selection';
+            label.style.cursor = 'pointer';
+            label.addEventListener('click', () => {
+                const checked = input.checked;
+                if (checked) {
+                    map.setLayoutProperty('circle-selection', 'visibility', 'visible');
+                } else {
+                    map.setLayoutProperty('circle-selection', 'visibility', 'none');
+                }
+            });
+
+            const radiusSliderDiv = document.createElement('div');
+            const radiusSlider = document.createElement('input');
+            radiusSlider.type = 'range';
+            radiusSlider.min = 0;
+            radiusSlider.max = 1000;
+            radiusSlider.value = 100;
+            radiusSlider.addEventListener('input', (e) => {
+                appData.circle.radius = parseInt(e.target.value);
+                updateCircle({ lat: appData.circle.lat, lng: appData.circle.lon });
+            });
+            radiusSliderDiv.appendChild(radiusSlider);
+
+            circleSelectionDiv.appendChild(input);
+            circleSelectionDiv.appendChild(label);
+            circleSelectionDiv.appendChild(radiusSliderDiv);
+
+        }
+        const renderItemsMenu = (data) => {
+            data.forEach((item) => {
+                const itemElement = createItem(item);
+                menu.appendChild(itemElement);
+            })
+        }
+
+        const createItem = (data) => {
+
+            const { lat, lon, time, title } = data;
+            const item = document.createElement('div');
+            item.className = 'item';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = true;
+            input.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                const layerId = data.id;
+                if (checked) {
+                    map.setLayoutProperty(layerId, 'visibility', 'visible');
+                } else {
+                    map.setLayoutProperty(layerId, 'visibility', 'none');
+                }
+            });
+
+            const label = document.createElement('label');
+            label.textContent = time;
+            label.style.cursor = 'pointer';
+            label.addEventListener('click', () => {
+                map.flyTo({
+                    center: [lon, lat],
+                    zoom: 18
+                });
+            });
+
+            item.appendChild(input);
+            item.appendChild(label);
+
+            return item;
+        }
+
+
+    </script>
+
+
+</body>
+
+</html>
