@@ -9,6 +9,12 @@
     <script src="/maplibre/turf.js"></script>
     <link href='/maplibre/maplibre-gl.css' rel='stylesheet' />
     <script src="/maplibre/measure.js"></script>
+
+    <link rel="preload" href="/icons/comment.svg" as="image">
+    <link rel="preload" href="/icons/voice.svg" as="image">
+    <link rel="preload" href="/icons/report.svg" as="image">
+    <link rel="preload" href="/icons/sms.svg" as="image">
+
     <style>
         body {
             margin: 0;
@@ -239,8 +245,8 @@
             unitsGroupingSeparator: ' ',
             totalFunc: (data) => {
                 const total = data.features.reduce((acc, item) => {
-                    const length = item.properties.measurement 
-                    return acc + item.properties.measurement 
+                    const length = item.properties.measurement
+                    return acc + item.properties.measurement
                 }, 0);
                 totalLengthContainer.innerHTML = `Total length: ${data.length} km`;
             },
@@ -269,18 +275,6 @@
 
         const canvas = map.getCanvasContainer();
 
-        const geojson = {
-            'type': 'FeatureCollection',
-            'features': [
-                {
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': [appData.circle.lng, appData.circle.lat]
-                    }
-                }
-            ]
-        };
 
 
         map.on('load', () => {
@@ -353,16 +347,7 @@
 
 
             //SELCT circle
-            map.addSource('point', {
-                'type': 'geojson',
-                'data': {
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'Point',
-                        'coordinates': [appData.circle.lng, appData.circle.lat]
-                    }
-                }
-            });
+
             map.addSource('circle', {
                 'type': 'geojson',
                 'data': {
@@ -373,16 +358,7 @@
                     }
                 }
             });
-            map.addLayer({
-                'id': 'select-circle-center',
-                'type': 'circle',
-                'source': 'point',
-                'visibility': 'visible',
-                'paint': {
-                    'circle-radius': 10,
-                    'circle-color': '#F84C4C' // red color
-                }
-            });
+
             map.addLayer({
                 'id': 'select-circle',
                 'type': 'fill',
@@ -391,34 +367,8 @@
                 'layout': {},
                 'paint': {
                     'fill-color': '#F84C4C',
-                    'fill-opacity': 0.5
+                    'fill-opacity': 0.1
                 }
-            });
-
-
-            // When the cursor enters a feature in
-            // the point layer, prepare for dragging.
-            map.on('mouseenter', 'select-circle-center', () => {
-                map.setPaintProperty('select-circle-center', 'circle-color', '#3bb2d0');
-                canvas.style.cursor = 'move';
-            });
-            map.on('mouseleave', 'select-circle-center', () => {
-                map.setPaintProperty('select-circle-center', 'circle-color', '#3887be');
-                canvas.style.cursor = '';
-            });
-            map.on('mousedown', 'select-circle-center', (e) => {
-                // Prevent the default map drag behavior.
-                e.preventDefault();
-                canvas.style.cursor = 'grab';
-                map.on('mousemove', onMove);
-                map.once('mouseup', onUp);
-            });
-            map.on('touchstart', 'select-circle-center', (e) => {
-                if (e.points.length !== 1) return;
-                // Prevent the default map drag behavior.
-                e.preventDefault();
-                map.on('touchmove', onMove);
-                map.once('touchend', onUp);
             });
 
 
@@ -500,30 +450,18 @@
             }
         }
 
-        function onMove(e) {
-            const { lng, lat } = e.lngLat;
-            updateCircle({ lat, lng });
-        }
-
-        function onUp(e) {
-            const coords = e.lngLat;
-            canvas.style.cursor = '';
-            // Unbind mouse/touch events
-            map.off('mousemove', onMove);
-            map.off('touchmove', onMove);
-        }
-
         const updateCircle = ({ lat, lng }) => {
-            canvas.style.cursor = 'grabbing';
-            geojson.features[0].geometry.coordinates = [lng, lat];
-            appData.circle.lng = lng;
-            appData.circle.lat = lat;
-            const circle = turf.circle([lng, lat], appData.circle.radius, {
-                steps: 50,
-                units: 'kilometers'
-            });
-            map.getSource('point').setData(geojson);
-            map.getSource('circle').setData(circle);
+
+            const collection = appData.markers.map((marker => {
+                const circle = turf.circle([marker.lon, marker.lat], appData.circle.radius, {
+                    steps: 50,
+                    units: 'kilometers'
+                });
+                return circle
+            }))
+            const featureCollection = turf.featureCollection(collection);
+            // map.getSource('point').setData(featureCollection);
+            map.getSource('circle').setData(featureCollection);
         }
 
 
@@ -594,7 +532,7 @@
             input.addEventListener('change', (e) => {
                 const visibility = input.checked ? 'visible' : 'none';
                 map.setLayoutProperty('select-circle', 'visibility', visibility);
-                map.setLayoutProperty('select-circle-center', 'visibility', visibility);
+                //map.setLayoutProperty('select-circle-center', 'visibility', visibility);
             });
             const label = document.createElement('label');
             label.textContent = 'Circle Selection';
@@ -627,6 +565,8 @@
             })
         }
 
+
+
         const createItem = (data, selected = null) => {
 
             const { id, lat, lon, time, iriType, title, comment } = data;
@@ -650,22 +590,23 @@
                 }
             });
 
-            const img = document.createElement('img');
+            const img = document.createElement('div');
             const imgType = iriType === 'voice'
                 ? 'voice.svg' : iriType === 'report'
                     ? 'report.svg' : 'sms.svg';
-            img.src = `/icons/${imgType}`;
+            const src = `/icons/${imgType}`;
+            img.style.backgroundImage = 'url(' + src + ')'
+            img.style.backgroundSize = '100% 100%'
             img.style.width = '20px';
             img.style.height = '20px';
             img.style.marginRight = '5px';
 
-            const commIcon = document.createElement('img');
-            commIcon.src = `/icons/comment.svg`;
+            const commIcon = document.createElement('div');
+            commIcon.style.backgroundImage = 'url(/icons/comment.svg)'
+            commIcon.style.backgroundSize = '100% 100%'
             commIcon.style.width = '20px';
             commIcon.style.height = '20px';
             commIcon.style.marginRight = '5px';
-
-            console.log('comment', comment);
 
             const label = document.createElement('label');
             label.textContent = id + '.' + time;
