@@ -149,470 +149,473 @@
 
     <script>
 
-        class AppData {
-            constructor() {
-                this.markers = [];
-                this.circle = {
-                    radius: 1,
-                    lng: 96.10329999999992,
-                    lat: 19.63702750032419
-                };
-                this._selectedPin = null;
-                this._selectedPinChangeListener = null;
-            }
+        //on document ready
+        document.addEventListener('DOMContentLoaded', () => {
 
-
-
-            //set selectedPinChangeListener
-            addSelectedPinChangeListener(listener) {
-                this._selectedPinChangeListener = listener;
-            }
-
-            get selectedPin() {
-                return this._selectedPin;
-            }
-
-            set selectedPin(newPin) {
-                this._selectedPin = newPin;
-                if (this._selectedPinChangeListener) {
-                    this._selectedPinChangeListener(newPin);
+            class AppData {
+                constructor() {
+                    this.markers = [];
+                    this.circle = {
+                        radius: 1,
+                        lng: 96.10329999999992,
+                        lat: 19.63702750032419
+                    };
+                    this._selectedPin = null;
+                    this._selectedPinChangeListener = null;
                 }
-            }
-        }
 
-        // Example usage:
-        const appData = new AppData();
 
-        const tileUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        const apiUrl = `data.json`
-        const menu = document.getElementById('menu');
-        const circleSelectionDiv = document.getElementById('circle-selection');
-        const bottomInfo = document.getElementById('bottom-info');
-        const bottomInfoText = document.getElementById('bottom-info-text');
-        const closeInfo = document.getElementById('close-info');
-        const totalLengthContainer = document.getElementById('total-length');
 
-        const svgVoice = ``
-
-        const style = {
-            "version": 8,
-            "sources": {
-                "osm": {
-                    "type": "raster",
-                    "tiles": [tileUrl],
-                    "tileSize": 256,
-                    "attribution": "&copy; OpenStreetMap Contributors",
-                    "maxzoom": 19
+                //set selectedPinChangeListener
+                addSelectedPinChangeListener(listener) {
+                    this._selectedPinChangeListener = listener;
                 }
-            },
-            "glyphs": `/mapfonts/{fontstack}/{range}.pbf`,
-            "layers": [
-                {
-                    "id": "osm",
-                    "type": "raster",
-                    "source": "osm" // This must match the source key above
+
+                get selectedPin() {
+                    return this._selectedPin;
                 }
-            ]
-        };
 
-        // Initialise the map
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: style,
-            center: { lng: 96.01259488396033, lat: 19.531402305502922 },
-            zoom: 0
-        });
-
-        // Add the navigation control
-        map.addControl(new maplibregl.NavigationControl());
-        map.addControl(new maplibreGLMeasures.default({
-            lang: {
-                areaMeasurementButtonTitle: 'Measure area',
-                lengthMeasurementButtonTitle: 'Measure length',
-                clearMeasurementsButtonTitle: 'Clear measurements',
-            },
-            units: 'metric', //or metric, the default
-            unitsGroupingSeparator: ' ',
-            totalFunc: (data) => {
-                const total = data.features.reduce((acc, item) => {
-                    const length = item.properties.measurement
-                    return acc + item.properties.measurement
-                }, 0);
-                totalLengthContainer.innerHTML = `Total length: ${data.length} km`;
-            },
-            style: {
-                text: {
-                    font: 'Open Sans Regular,Arial Unicode MS Regular',
-                },
-                common: {
-                    midPointRadius: 3,
-                    midPointColor: '#D20C0C',
-                    midPointHaloRadius: 5,
-                    midPointHaloColor: '#FFF',
-                },
-                areaMeasurement: {
-                    fillColor: '#D20C0C',
-                    fillOutlineColor: '#D20C0C',
-                    fillOpacity: 0.01,
-                    lineWidth: 2,
-                },
-                lengthMeasurement: {
-                    lineWidth: 2,
-                    lineColor: "#D20C0C",
-                },
-            },
-        }), 'top-right');
-
-        const canvas = map.getCanvasContainer();
-
-
-
-        map.on('load', () => {
-
-            //RED circle
-            map.addSource('circle', {
-                'type': 'geojson',
-                'data': {
-                    'type': 'Feature',
-                    'geometry': {
-                        'type': 'Polygon',
-                        'coordinates': []
+                set selectedPin(newPin) {
+                    this._selectedPin = newPin;
+                    if (this._selectedPinChangeListener) {
+                        this._selectedPinChangeListener(newPin);
                     }
                 }
-            });
-            map.addLayer({
-                'id': 'select-circle',
-                'type': 'fill',
-                'source': 'circle',
-                'layout': {
-                    'visibility': 'none',
+            }
+
+            // Example usage:
+            const appData = new AppData();
+
+            const tileUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            const apiUrl = `data.json`
+            const menu = document.getElementById('menu');
+            const circleSelectionDiv = document.getElementById('circle-selection');
+            const bottomInfo = document.getElementById('bottom-info');
+            const bottomInfoText = document.getElementById('bottom-info-text');
+            const closeInfo = document.getElementById('close-info');
+            const totalLengthContainer = document.getElementById('total-length');
+
+            const svgVoice = ``
+
+            const style = {
+                "version": 8,
+                "sources": {
+                    "osm": {
+                        "type": "raster",
+                        "tiles": [tileUrl],
+                        "tileSize": 256,
+                        "attribution": "&copy; OpenStreetMap Contributors",
+                        "maxzoom": 19
+                    }
                 },
-                'paint': {
-                    'fill-color': '#F84C4C',
-                    'fill-opacity': 0.3
-                }
+                "glyphs": `/mapfonts/{fontstack}/{range}.pbf`,
+                "layers": [
+                    {
+                        "id": "osm",
+                        "type": "raster",
+                        "source": "osm" // This must match the source key above
+                    }
+                ]
+            };
+
+            // Initialise the map
+            const map = new maplibregl.Map({
+                container: 'map',
+                style: style,
+                center: { lng: 96.01259488396033, lat: 19.531402305502922 },
+                zoom: 0
             });
 
-            map.addSource('points', {
-                type: 'geojson',
-                data: {
-                    "type": "FeatureCollection",
-                    "features": []
+            // Add the navigation control
+            map.addControl(new maplibregl.NavigationControl());
+            map.addControl(new maplibreGLMeasures.default({
+                lang: {
+                    areaMeasurementButtonTitle: 'Measure area',
+                    lengthMeasurementButtonTitle: 'Measure length',
+                    clearMeasurementsButtonTitle: 'Clear measurements',
                 },
-                cluster: true,
-                clusterMaxZoom: 20, // Max zoom to cluster points on
-                clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
-            });
-
-            map.addSource('selected-point', {
-                type: 'geojson',
-                data: {
-                    "type": "FeatureCollection",
-                    "features": []
+                units: 'metric', //or metric, the default
+                unitsGroupingSeparator: ' ',
+                totalFunc: (data) => {
+                    const total = data.features.reduce((acc, item) => {
+                        const length = item.properties.measurement
+                        return acc + item.properties.measurement
+                    }, 0);
+                    totalLengthContainer.innerHTML = `Total length: ${data.length} km`;
                 },
-            });
-
-            map.addLayer({
-                id: 'clusters',
-                type: 'circle',
-                source: 'points',
-                filter: ['has', 'point_count'],
-                paint: {
-                    'circle-color': '#51bbd6',
-                    'circle-radius': 20
-                }
-            });
-
-            map.addLayer({
-                id: 'unclustered-selected-point',
-                type: 'circle',
-                source: 'selected-point',
-                filter: ['!', ['has', 'point_count']],
-                paint: {
-                    'circle-color': 'red',
-                    'circle-radius': 15,
-                }
-            });
-
-            map.addLayer({
-                id: 'cluster-count',
-                type: 'symbol',
-                source: 'points',
-                filter: ['has', 'point_count'],
-                layout: {
-                    'text-field': '{point_count_abbreviated}',
-
-                    'text-size': 12
-                }
-            });
-
-            map.addLayer({
-                id: 'unclustered-point',
-                type: 'circle',
-                source: 'points',
-                filter: ['!', ['has', 'point_count']],
-                paint: {
-                    'circle-color': '#11b4da',
-                    'circle-radius': 5,
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#fff'
+                style: {
+                    text: {
+                        font: 'Open Sans Regular,Arial Unicode MS Regular',
+                    },
+                    common: {
+                        midPointRadius: 3,
+                        midPointColor: '#D20C0C',
+                        midPointHaloRadius: 5,
+                        midPointHaloColor: '#FFF',
+                    },
+                    areaMeasurement: {
+                        fillColor: '#D20C0C',
+                        fillOutlineColor: '#D20C0C',
+                        fillOpacity: 0.01,
+                        lineWidth: 2,
+                    },
+                    lengthMeasurement: {
+                        lineWidth: 2,
+                        lineColor: "#D20C0C",
+                    },
                 },
-            });
+            }), 'top-right');
+
+            const canvas = map.getCanvasContainer();
 
 
-            map.on('click', 'clusters', (e) => {
-                const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-                const clusterId = features[0].properties.cluster_id;
-                map.getSource('points').getClusterExpansionZoom(clusterId, (err, zoom) => {
-                    if (err) return;
 
-                    map.easeTo({
-                        center: features[0].geometry.coordinates,
-                        zoom: zoom
+            map.on('load', () => {
+
+                //RED circle
+                map.addSource('circle', {
+                    'type': 'geojson',
+                    'data': {
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Polygon',
+                            'coordinates': []
+                        }
+                    }
+                });
+                map.addLayer({
+                    'id': 'select-circle',
+                    'type': 'fill',
+                    'source': 'circle',
+                    'layout': {
+                        'visibility': 'none',
+                    },
+                    'paint': {
+                        'fill-color': '#F84C4C',
+                        'fill-opacity': 0.3
+                    }
+                });
+
+                map.addSource('points', {
+                    type: 'geojson',
+                    data: {
+                        "type": "FeatureCollection",
+                        "features": []
+                    },
+                    cluster: true,
+                    clusterMaxZoom: 20, // Max zoom to cluster points on
+                    clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+                });
+
+                map.addSource('selected-point', {
+                    type: 'geojson',
+                    data: {
+                        "type": "FeatureCollection",
+                        "features": []
+                    },
+                });
+
+                map.addLayer({
+                    id: 'clusters',
+                    type: 'circle',
+                    source: 'points',
+                    filter: ['has', 'point_count'],
+                    paint: {
+                        'circle-color': '#51bbd6',
+                        'circle-radius': 20
+                    }
+                });
+
+                map.addLayer({
+                    id: 'unclustered-selected-point',
+                    type: 'circle',
+                    source: 'selected-point',
+                    filter: ['!', ['has', 'point_count']],
+                    paint: {
+                        'circle-color': 'red',
+                        'circle-radius': 15,
+                    }
+                });
+
+                map.addLayer({
+                    id: 'cluster-count',
+                    type: 'symbol',
+                    source: 'points',
+                    filter: ['has', 'point_count'],
+                    layout: {
+                        'text-field': '{point_count_abbreviated}',
+
+                        'text-size': 12
+                    }
+                });
+
+                map.addLayer({
+                    id: 'unclustered-point',
+                    type: 'circle',
+                    source: 'points',
+                    filter: ['!', ['has', 'point_count']],
+                    paint: {
+                        'circle-color': '#11b4da',
+                        'circle-radius': 5,
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#fff'
+                    },
+                });
+
+
+                map.on('click', 'clusters', (e) => {
+                    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+                    const clusterId = features[0].properties.cluster_id;
+                    map.getSource('points').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                        if (err) return;
+
+                        map.easeTo({
+                            center: features[0].geometry.coordinates,
+                            zoom: zoom
+                        });
                     });
                 });
+                map.on('mouseenter', 'clusters', (e) => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', 'clusters', (e) => {
+                    map.getCanvas().style.cursor = '';
+                });
+
+
+                map.on('mouseenter', 'unclustered-point', (e) => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', 'unclustered-point', (e) => {
+                    map.getCanvas().style.cursor = '';
+                });
+                map.on('click', 'unclustered-point', (e) => {
+                    const coordinates = e.features[0].geometry.coordinates.slice();
+                    const { id, title } = e.features[0].properties;
+                    console.log('Props', e.features[0].properties);
+                    new maplibregl.Popup()
+                        .setLngLat(coordinates)
+                        .setHTML(title)
+                        .addTo(map);
+
+                    showBottomInfo({ text: title });
+                    appData.selectedPin = { id };
+                });
+
+
+                loadData();
+
+                appData.addSelectedPinChangeListener((newPin) => {
+                    if (newPin !== null) {
+                        const selected = appData.markers.filter((item) => item.id === newPin.id)
+
+                        map.getSource('selected-point').setData({
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [selected[0].lon, selected[0].lat]
+                                    },
+                                }
+                            ]
+                        })
+
+                        renderItemsMenu(appData.markers, selected[0].id);
+                    }
+                });
+            })
+
+            closeInfo.addEventListener('click', () => {
+                showBottomInfo({ text: '' });
             });
-            map.on('mouseenter', 'clusters', (e) => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', 'clusters', (e) => {
-                map.getCanvas().style.cursor = '';
-            });
+
+            function showBottomInfo({ text }) {
+                if (text === '') {
+                    bottomInfo.style.display = 'none';
+                }
+                else {
+                    bottomInfo.style.display = 'block';
+                    bottomInfoText.innerHTML = text;
+                }
+            }
+
+            const updateCircle = () => {
+
+                const collection = appData.markers.map((marker => {
+                    const circle = turf.circle([marker.lon, marker.lat], appData.circle.radius, {
+                        steps: 50,
+                        units: 'kilometers'
+                    });
+                    return circle
+                }))
+                const featureCollection = turf.featureCollection(collection);
+                map.getSource('circle').setData(featureCollection);
+
+                console.log('here!!!');
+            }
 
 
-            map.on('mouseenter', 'unclustered-point', (e) => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-            map.on('mouseleave', 'unclustered-point', (e) => {
-                map.getCanvas().style.cursor = '';
-            });
-            map.on('click', 'unclustered-point', (e) => {
-                const coordinates = e.features[0].geometry.coordinates.slice();
-                const { id, title } = e.features[0].properties;
-                console.log('Props', e.features[0].properties);
-                new maplibregl.Popup()
-                    .setLngLat(coordinates)
-                    .setHTML(title)
-                    .addTo(map);
+            const loadData = () => {
 
-                showBottomInfo({ text: title });
-                appData.selectedPin = { id };
-            });
+                fetch(apiUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data)
 
+                        const bounds = new maplibregl.LngLatBounds();
+                        const pins = data.map((item, id) => {
+                            const [lat, lon] = item.latlon.split(',').map(parseFloat);
+                            bounds.extend([lon, lat]);
 
-            loadData();
+                            appData.markers.push({
+                                id: id,
+                                lat,
+                                lon,
+                                time: item.time,
+                                title: item.title,
+                                iriType: item.iriType,
+                                comment: item.comment
+                            });
 
-            appData.addSelectedPinChangeListener((newPin) => {
-                if (newPin !== null) {
-                    const selected = appData.markers.filter((item) => item.id === newPin.id)
-
-                    map.getSource('selected-point').setData({
-                        "type": "FeatureCollection",
-                        "features": [
-                            {
+                            return {
                                 "type": "Feature",
                                 "geometry": {
                                     "type": "Point",
-                                    "coordinates": [selected[0].lon, selected[0].lat]
+                                    "coordinates": [lon, lat]
                                 },
+                                "properties": {
+                                    "id": id,
+                                    "time": item.time,
+                                    "title": item.title,
+                                    "iriType": item.iriType,
+                                    "comment": item.comment
+                                }
                             }
-                        ]
-                    })
-
-                    renderItemsMenu(appData.markers, selected[0].id);
-                }
-            });
-        })
-
-        closeInfo.addEventListener('click', () => {
-            showBottomInfo({ text: '' });
-        });
-
-        function showBottomInfo({ text }) {
-            if (text === '') {
-                bottomInfo.style.display = 'none';
-            }
-            else {
-                bottomInfo.style.display = 'block';
-                bottomInfoText.innerHTML = text;
-            }
-        }
-
-        const updateCircle = () => {
-
-            const collection = appData.markers.map((marker => {
-                const circle = turf.circle([marker.lon, marker.lat], appData.circle.radius, {
-                    steps: 50,
-                    units: 'kilometers'
-                });
-                return circle
-            }))
-            const featureCollection = turf.featureCollection(collection);
-            map.getSource('circle').setData(featureCollection);
-
-            console.log('here!!!');
-        }
-
-
-        const loadData = () => {
-
-            fetch(apiUrl)
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data)
-
-                    const bounds = new maplibregl.LngLatBounds();
-                    const pins = data.map((item, id) => {
-                        const [lat, lon] = item.latlon.split(',').map(parseFloat);
-                        bounds.extend([lon, lat]);
-
-                        appData.markers.push({
-                            id: id,
-                            lat,
-                            lon,
-                            time: item.time,
-                            title: item.title,
-                            iriType: item.iriType,
-                            comment: item.comment
+                        })
+                        const geojson = {
+                            "type": "FeatureCollection",
+                            "features": pins
+                        };
+                        map.getSource('points').setData(geojson);
+                        map.fitBounds(bounds, {
+                            padding: 100,
                         });
+                        // Calculate center from bounds
+                        // const { _ne, _sw } = bounds;
+                        // const ne = _ne.toArray(); // North-east coordinates [lng, lat]
+                        // const sw = _sw.toArray(); // South-west coordinates [lng, lat]
+                        // const centerLng = (ne[0] + sw[0]) / 2;
+                        // const centerLat = (ne[1] + sw[1]) / 2;
+                        // const center = new maplibregl.LngLat(centerLng, centerLat);
+                        // map.panTo(center, { zoom: 17 });
 
-                        return {
-                            "type": "Feature",
-                            "geometry": {
-                                "type": "Point",
-                                "coordinates": [lon, lat]
-                            },
-                            "properties": {
-                                "id": id,
-                                "time": item.time,
-                                "title": item.title,
-                                "iriType": item.iriType,
-                                "comment": item.comment
-                            }
-                        }
+                        renderItemsMenu(appData.markers);
+                        createCircle();
                     })
-                    const geojson = {
-                        "type": "FeatureCollection",
-                        "features": pins
-                    };
-                    map.getSource('points').setData(geojson);
-                    map.fitBounds(bounds, {
-                        padding: 100,
-                    });
-                    // Calculate center from bounds
-                    // const { _ne, _sw } = bounds;
-                    // const ne = _ne.toArray(); // North-east coordinates [lng, lat]
-                    // const sw = _sw.toArray(); // South-west coordinates [lng, lat]
-                    // const centerLng = (ne[0] + sw[0]) / 2;
-                    // const centerLat = (ne[1] + sw[1]) / 2;
-                    // const center = new maplibregl.LngLat(centerLng, centerLat);
-                    // map.panTo(center, { zoom: 17 });
+            }
 
-                    renderItemsMenu(appData.markers);
-                    createCircle();
+            const createCircle = () => {
+                const circle = document.createElement('div');
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = false;
+                input.addEventListener('change', (e) => {
+                    const visibility = input.checked ? 'visible' : 'none';
+                    map.setLayoutProperty('select-circle', 'visibility', visibility);
+                    //map.setLayoutProperty('select-circle-center', 'visibility', visibility);
+                    updateCircle();
+                });
+                const label = document.createElement('label');
+                label.textContent = 'Circle Selection';
+                label.style.cursor = 'pointer';
+                label.htmlFor = 'circle-selection';
+
+                const radiusSliderDiv = document.createElement('div');
+                const radiusSlider = document.createElement('input');
+                radiusSlider.type = 'range';
+                radiusSlider.min = 0;
+                radiusSlider.max = 100;
+                radiusSlider.value = 1;
+                radiusSlider.addEventListener('input', (e) => {
+                    appData.circle.radius = parseInt(e.target.value);
+                    updateCircle();
+                });
+                radiusSliderDiv.appendChild(radiusSlider);
+
+                circleSelectionDiv.appendChild(input);
+                circleSelectionDiv.appendChild(label);
+                circleSelectionDiv.appendChild(radiusSliderDiv);
+
+            }
+
+            const renderItemsMenu = (data, selected) => {
+                menu.innerHTML = '';
+                data.forEach((item) => {
+                    const itemElement = createItem(item, selected);
+                    menu.appendChild(itemElement);
                 })
-        }
-
-        const createCircle = () => {
-            const circle = document.createElement('div');
-            const input = document.createElement('input');
-            input.type = 'checkbox';
-            input.checked = false;
-            input.addEventListener('change', (e) => {
-                const visibility = input.checked ? 'visible' : 'none';
-                map.setLayoutProperty('select-circle', 'visibility', visibility);
-                //map.setLayoutProperty('select-circle-center', 'visibility', visibility);
-                updateCircle();
-            });
-            const label = document.createElement('label');
-            label.textContent = 'Circle Selection';
-            label.style.cursor = 'pointer';
-            label.htmlFor = 'circle-selection';
-
-            const radiusSliderDiv = document.createElement('div');
-            const radiusSlider = document.createElement('input');
-            radiusSlider.type = 'range';
-            radiusSlider.min = 0;
-            radiusSlider.max = 100;
-            radiusSlider.value = 1;
-            radiusSlider.addEventListener('input', (e) => {
-                appData.circle.radius = parseInt(e.target.value);
-                updateCircle();
-            });
-            radiusSliderDiv.appendChild(radiusSlider);
-
-            circleSelectionDiv.appendChild(input);
-            circleSelectionDiv.appendChild(label);
-            circleSelectionDiv.appendChild(radiusSliderDiv);
-
-        }
-
-        const renderItemsMenu = (data, selected) => {
-            menu.innerHTML = '';
-            data.forEach((item) => {
-                const itemElement = createItem(item, selected);
-                menu.appendChild(itemElement);
-            })
-        }
+            }
 
 
 
-        const createItem = (data, selected = null) => {
+            const createItem = (data, selected = null) => {
 
-            const { id, lat, lon, time, iriType, title, comment } = data;
-            const item = document.createElement('div');
-            const selectedClass = selected === id ? 'selected' : '';
-            item.className = 'item ' + selectedClass;
-            item.addEventListener('click', () => {
-                appData.selectedPin = { id };
-            });
+                const { id, lat, lon, time, iriType, title, comment } = data;
+                const item = document.createElement('div');
+                const selectedClass = selected === id ? 'selected' : '';
+                item.className = 'item ' + selectedClass;
+                item.addEventListener('click', () => {
+                    appData.selectedPin = { id };
+                });
 
-            const input = document.createElement('div');
-            // const input = document.createElement('input');
-            // input.type = 'checkbox';
-            // input.checked = true;
-            // input.addEventListener('change', (e) => {
-            //     const checked = e.target.checked;
-            //     const layerId = data.id;
-            //     if (checked) {
-            //         map.setLayoutProperty(layerId, 'visibility', 'visible');
-            //     } else {
-            //         map.setLayoutProperty(layerId, 'visibility', 'none');
-            //     }
-            // });
+                const input = document.createElement('div');
+                // const input = document.createElement('input');
+                // input.type = 'checkbox';
+                // input.checked = true;
+                // input.addEventListener('change', (e) => {
+                //     const checked = e.target.checked;
+                //     const layerId = data.id;
+                //     if (checked) {
+                //         map.setLayoutProperty(layerId, 'visibility', 'visible');
+                //     } else {
+                //         map.setLayoutProperty(layerId, 'visibility', 'none');
+                //     }
+                // });
 
-            const img = document.createElement('div');
-            const imgType = iriType === 'voice'
-                ? 'voice.svg' : iriType === 'report'
-                    ? 'report.svg' : 'sms.svg';
-            const src = `/icons/${imgType}`;
-            img.style.backgroundImage = 'url(' + src + ')'
-            img.style.backgroundSize = '100% 100%'
-            img.style.width = '20px';
-            img.style.height = '20px';
-            img.style.marginRight = '5px';
+                const img = document.createElement('div');
+                const imgType = iriType === 'voice'
+                    ? 'voice.svg' : iriType === 'report'
+                        ? 'report.svg' : 'sms.svg';
+                const src = `/icons/${imgType}`;
+                img.style.backgroundImage = 'url(' + src + ')'
+                img.style.backgroundSize = '100% 100%'
+                img.style.width = '20px';
+                img.style.height = '20px';
+                img.style.marginRight = '5px';
 
-            const commIcon = document.createElement('div');
-            commIcon.style.backgroundImage = 'url(/icons/comment.svg)'
-            commIcon.style.backgroundSize = '100% 100%'
-            commIcon.style.width = '20px';
-            commIcon.style.height = '20px';
-            commIcon.style.marginRight = '5px';
+                const commIcon = document.createElement('div');
+                commIcon.style.backgroundImage = 'url(/icons/comment.svg)'
+                commIcon.style.backgroundSize = '100% 100%'
+                commIcon.style.width = '20px';
+                commIcon.style.height = '20px';
+                commIcon.style.marginRight = '5px';
 
-            const label = document.createElement('label');
-            label.textContent = id + '.' + time;
-            label.style.cursor = 'pointer';
+                const label = document.createElement('label');
+                label.textContent = id + '.' + time;
+                label.style.cursor = 'pointer';
 
-            item.appendChild(input);
-            item.appendChild(label);
-            item.appendChild(img);
+                item.appendChild(input);
+                item.appendChild(label);
+                item.appendChild(img);
 
-            comment && item.appendChild(commIcon);
+                comment && item.appendChild(commIcon);
 
-            return item;
-        }
+                return item;
+            }
 
-
+        });
     </script>
 
 
