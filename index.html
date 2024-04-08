@@ -208,7 +208,7 @@
                         "maxzoom": 19
                     }
                 },
-                "glyphs": `/mapfonts/{fontstack}/{range}.pbf`,
+                "glyphs": `mapfonts/{fontstack}/{range}.pbf`,
                 "layers": [
                     {
                         "id": "osm",
@@ -588,7 +588,7 @@
                 const imgType = iriType === 'voice'
                     ? 'voice.svg' : iriType === 'report'
                         ? 'report.svg' : 'sms.svg';
-                const src = `/icons/${imgType}`;
+                const src = `icons/${imgType}`;
                 img.style.backgroundImage = 'url(' + src + ')'
                 img.style.backgroundSize = '100% 100%'
                 img.style.width = '20px';
@@ -596,7 +596,7 @@
                 img.style.marginRight = '5px';
 
                 const commIcon = document.createElement('div');
-                commIcon.style.backgroundImage = 'url(/icons/comment.svg)'
+                commIcon.style.backgroundImage = 'url(icons/comment.svg)'
                 commIcon.style.backgroundSize = '100% 100%'
                 commIcon.style.width = '20px';
                 commIcon.style.height = '20px';
