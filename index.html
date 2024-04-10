@@ -107,11 +107,13 @@
             left: 50%;
             transform: translate(-50%, 0px);
             display: none;
+            width: 90%;
         }
 
         #bottom-info-text {
             padding: 10px;
             font-size: 1rem;
+            line-height: 1.6rem;
         }
 
         #close-info {
@@ -151,7 +153,6 @@
     <script src='maplibre/maplibre-gl.js' defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('444', 444);
             class AppData {
                 constructor() {
                     this.markers = [];
@@ -163,8 +164,6 @@
                     this._selectedPin = null;
                     this._selectedPinChangeListener = null;
                 }
-
-
 
                 //set selectedPinChangeListener
                 addSelectedPinChangeListener(listener) {
