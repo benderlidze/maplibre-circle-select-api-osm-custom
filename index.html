@@ -5,10 +5,11 @@
     <meta charset='utf-8' />
     <title>MapLibre Demotile - OMT</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='maplibre/maplibre-gl.js'></script>
     <link href='maplibre/maplibre-gl.css' rel='stylesheet' />
-    <script src="maplibre/turf.js"></script>
+    <script src='maplibre/maplibre-gl.js'></script>
+
     <script src="maplibre/measure.js"></script>
+    <script src="maplibre/turf.js"></script>
 
     <link rel="preload" href="icons/comment.svg" as="image">
     <link rel="preload" href="icons/voice.svg" as="image">
@@ -149,10 +150,10 @@
     </div>
 
     <script>
-
+        console.log('123', 123);
         //on document ready
         document.addEventListener('DOMContentLoaded', () => {
-
+            console.log('444', 444);
             class AppData {
                 constructor() {
                     this.markers = [];
@@ -481,10 +482,15 @@
                     });
                     return circle
                 }))
-                const featureCollection = turf.featureCollection(collection);
-                map.getSource('circle').setData(featureCollection);
 
-                console.log('here!!!');
+                //join geometry 
+                const joined = collection.reduce((acc, item) => {
+                    return turf.union(acc, item)
+                }, collection[0]);
+
+                const featureCollection = turf.featureCollection(joined);
+                map.getSource('circle').setData(joined);
+
             }
 
 
@@ -575,7 +581,6 @@
                     updateCircle();
                 });
                 radiusSliderDiv.appendChild(radiusSlider);
-
 
                 const numbers = document.createElement('div');
                 numbers.style.display = 'flex';
