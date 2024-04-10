@@ -237,12 +237,16 @@
                 },
                 units: 'metric', //or metric, the default
                 unitsGroupingSeparator: ' ',
-                totalFunc: (data) => {
-                    const total = data.features.reduce((acc, item) => {
-                        const length = item.properties.measurement
-                        return acc + item.properties.measurement
-                    }, 0);
-                    totalLengthContainer.innerHTML = `Total length: ${data.length} km`;
+                totalFunc: (data, f) => {
+                    if (data.length > 0) {
+                        const lineLength = data.map((item) => {
+                            return turf.length(item, { units: 'kilometers' }).toFixed(2) + "km";
+                        }).join("<br> ");
+                        totalLengthContainer.style.display = 'block';
+                        totalLengthContainer.innerHTML = `Total distance: ${lineLength}`;
+                    } else {
+                        totalLengthContainer.style.display = 'none';
+                    }
                 },
                 style: {
                     text: {
