@@ -5,9 +5,8 @@
     <meta charset='utf-8' />
     <title>MapLibre Demotile - OMT</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <link href='maplibre/maplibre-gl.css' rel='stylesheet' />
-    <script src='maplibre/maplibre-gl.js'></script>
 
+    <link href='maplibre/maplibre-gl.css' rel='stylesheet' />
     <script src="maplibre/measure.js"></script>
     <script src="maplibre/turf.js"></script>
 
@@ -57,8 +56,7 @@
         .item {
             display: grid;
             grid-gap: 10px;
-            grid-template-columns: 20px 100px 20px 20px;
-            grid-auto-columns: 1fr;
+            grid-template-columns: 20px 1fr 20px;
             border: 1px solid #c1c1c1;
             border-radius: 5px;
             padding: 8px;
@@ -113,6 +111,7 @@
 
         #bottom-info-text {
             padding: 10px;
+            font-size: 1rem;
         }
 
         #close-info {
@@ -146,12 +145,11 @@
             </div>
             <div id="bottom-info-text"></div>
         </div>
-        <div id="total-length">123</div>
+        <div id="total-length"></div>
     </div>
 
+    <script src='maplibre/maplibre-gl.js' defer></script>
     <script>
-        console.log('123', 123);
-        //on document ready
         document.addEventListener('DOMContentLoaded', () => {
             console.log('444', 444);
             class AppData {
@@ -431,7 +429,8 @@
                         const selected = appData.markers.find((item) => item.id === newPin.id)
                         if (!selected) return;
 
-                        const { lat, lon, id, title } = selected;
+                        console.log('selected', selected);
+                        const { lat, lon, id, title, comment } = selected;
                         map.getSource('selected-point').setData({
                             "type": "FeatureCollection",
                             "features": [
@@ -453,7 +452,7 @@
                         })
 
                         console.log('selected', selected);
-                        const text = `${lat}, ${lon}, ${title}`
+                        const text = `${lat}, ${lon}, ${title} ${comment ? comment : ""}`
                         showBottomInfo({ text });
                     }
                 });
@@ -633,7 +632,7 @@
                 const imgType = iriType === 'voice'
                     ? 'voice.svg' : iriType === 'report'
                         ? 'report.svg' : 'sms.svg';
-                const src = `icons / ${imgType}`;
+                const src = `icons/${imgType}`;
                 img.style.backgroundImage = 'url(' + src + ')'
                 img.style.backgroundSize = '100% 100%'
                 img.style.width = '20px';
@@ -651,9 +650,9 @@
                 label.textContent = time;
                 label.style.cursor = 'pointer';
 
-                item.appendChild(input);
-                item.appendChild(label);
                 item.appendChild(img);
+                // item.appendChild(input);
+                item.appendChild(label);
 
                 comment && item.appendChild(commIcon);
 
