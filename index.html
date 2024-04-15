@@ -6,9 +6,13 @@
     <title>MapLibre Demotile - OMT</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 
-    <link href='maplibre/maplibre-gl.css' rel='stylesheet' />
-    <script src="maplibre/measure.js"></script>
-    <script src="maplibre/turf.js"></script>
+    <script src='js/maplibre-gl.js' defer></script>
+    <link href='js/maplibre-gl.css' rel='stylesheet' />
+    <script src="js/measure.js"></script>
+    <script src="js/turf.js"></script>
+
+    <link href="js/vanilla-calendar.min.css" rel="stylesheet">
+    <script src="js/vanilla-calendar.min.js" defer></script>
 
     <link rel="preload" href="icons/comment.svg" as="image">
     <link rel="preload" href="icons/voice.svg" as="image">
@@ -88,7 +92,7 @@
 
         #total-length {
             position: absolute;
-            top: 10px;
+            top: 40px;
             background: white;
             border-radius: 5px;
             z-index: 2;
@@ -129,12 +133,37 @@
             justify-content: center;
             align-items: center;
         }
+
+        #page-info {
+            position: absolute;
+            top: 10px;
+            /* background: white; */
+            border-radius: 5px;
+            z-index: 1;
+            left: 50%;
+            transform: translate(-50%, 0px);
+            display: none;
+            width: 40%;
+        }
+
+        #page-info-text {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #222f3e;
+        }
     </style>
 </head>
 
 <body>
 
     <div id="map">
+        <div id="page-info">
+            <div id="page-info-text"></div>
+            <div id="calendar"></div>
+        </div>
         <div id="circle-selection"></div>
         <div id="menu"></div>
         <div id="bottom-info">
@@ -149,13 +178,12 @@
         </div>
         <div id="total-length"></div>
     </div>
-
-    <script src='maplibre/maplibre-gl.js' defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             class AppData {
                 constructor() {
                     this.markers = [];
+                    this._currentDate = new Date();
                     this.circle = {
                         radius: 1,
                         lng: 96.10329999999992,
@@ -163,6 +191,13 @@
                     };
                     this._selectedPin = null;
                     this._selectedPinChangeListener = null;
+                }
+
+                get markers() {
+                    return this._markers;
+                }
+                set markers(newMarkers) {
+                    this._markers = newMarkers;
                 }
 
                 //set selectedPinChangeListener
@@ -180,17 +215,36 @@
                         this._selectedPinChangeListener(newPin);
                     }
                 }
+
+                addCurrentDateChangeListener(listener) {
+                    this._currentDateChangeListener = listener;
+                }
+
+                get currentDate() {
+                    return this._currentDate;
+                }
+                set currentDate(date) {
+                    this._currentDate = date;
+                    if (this._currentDateChangeListener) {
+                        this._currentDateChangeListener(date);
+                    }
+                }
             }
 
             // Example usage:
-            const appData = new AppData();
+            appData = new AppData();
+
+            updatePageInfo();
 
             const tileUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
             const apiUrl = `data.json`
             const menu = document.getElementById('menu');
             const circleSelectionDiv = document.getElementById('circle-selection');
+
+
             const bottomInfo = document.getElementById('bottom-info');
             const bottomInfoText = document.getElementById('bottom-info-text');
+
             const closeInfo = document.getElementById('close-info');
             const totalLengthContainer = document.getElementById('total-length');
 
@@ -268,8 +322,6 @@
                     },
                 },
             }), 'top-right');
-
-            const canvas = map.getCanvasContainer();
 
 
             map.on('load', async () => {
@@ -369,20 +421,6 @@
                     }
                 });
 
-                // map.addLayer({
-                //     id: 'unclustered-point2',
-                //     type: 'circle',
-                //     source: 'points',
-                //     filter: ['!', ['has', 'point_count']],
-                //     paint: {
-                //         'circle-color': '#11b4da',
-                //         'circle-radius': 5,
-                //         'circle-stroke-width': 2,
-                //         'circle-stroke-color': '#fff'
-                //     },
-                // });
-
-
                 map.on('click', 'clusters', (e) => {
                     const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
                     const clusterId = features[0].properties.cluster_id;
@@ -402,7 +440,6 @@
                     map.getCanvas().style.cursor = '';
                 });
 
-
                 map.on('mouseenter', 'unclustered-point', (e) => {
                     map.getCanvas().style.cursor = 'pointer';
                 });
@@ -420,17 +457,22 @@
                     appData.selectedPin = { id };
                 });
 
-
-                loadData();
+                loadData(apiUrl);
 
                 appData.addSelectedPinChangeListener((newPin) => {
+                    console.log('newPin', newPin);
+
+                    let feature = {
+                        "type": "FeatureCollection",
+                        "features": []
+                    }
+
                     if (newPin !== null) {
                         const selected = appData.markers.find((item) => item.id === newPin.id)
                         if (!selected) return;
-
                         console.log('selected', selected);
                         const { lat, lon, id, title, comment } = selected;
-                        map.getSource('selected-point').setData({
+                        feature = {
                             "type": "FeatureCollection",
                             "features": [
                                 {
@@ -441,25 +483,94 @@
                                     },
                                 }
                             ]
-                        })
-
+                        }
                         renderItemsMenu(appData.markers, id);
-
                         map.flyTo({
                             center: [lon, lat],
                             zoom: map.getZoom()
                         })
-
                         console.log('selected', selected);
                         const text = `${lat}, ${lon}, ${title} ${comment ? comment : ""}`
                         showBottomInfo({ text });
                     }
+
+                    map.getSource('selected-point').setData(feature)
+                    updateCircle();
+                });
+
+                appData.addCurrentDateChangeListener((date) => {
+                    console.log('DATE CHANGED - refetch api ', date);
+                    loadData('data1.json');
                 });
             })
 
             closeInfo.addEventListener('click', () => {
                 showBottomInfo({ text: '' });
             });
+
+            function updatePageInfo() {
+
+                const pageInfo = document.getElementById('page-info');
+                const pageInfoText = document.getElementById('page-info-text');
+
+                const params = new URLSearchParams(document.location.search);
+                const liid = params.get("liid") || ""
+                const date = params.get("date") || ""
+
+                pageInfo.style.display = 'block';
+
+                const id = document.createElement('div');
+                id.textContent = 'LIID: ' + liid
+
+                const calendarDiv = document.createElement('div');
+                calendarDiv.style.display = 'flex';
+                calendarDiv.style.cursor = 'pointer';
+
+                const calendarIcon = document.createElement('div');
+                calendarIcon.style.backgroundImage = 'url(icons/calendar.svg)';
+                calendarIcon.style.backgroundSize = '100% 100%';
+                calendarIcon.style.userSelect = 'none';
+
+                calendarIcon.style.width = '20px';
+                calendarIcon.style.height = '20px';
+                calendarIcon.style.marginRight = '5px';
+                const calendar = document.createElement('div');
+                calendar.textContent = 'Date: 2021-09-01';
+
+                calendarDiv.appendChild(calendarIcon);
+                calendarDiv.appendChild(calendar);
+
+                calendarDiv.addEventListener('click', () => {
+                    datePicker.HTMLElement.style.display = 'block'
+                    datePicker.show()
+                });
+
+                //https://github.com/uvarov-frontend/vanilla-calendar-pro
+                const options = {
+                    actions: {
+                        clickDay(event, self) {
+                            appData.currentDate = self.selectedDates[0];
+                            const date = new Date(self.selectedDates[0]);
+                            const formattedDate = date.toISOString().slice(0, 10);
+                            calendar.textContent = `Date: ` + formattedDate
+                            datePicker.hide()
+                            datePicker.HTMLElement.style.display = 'none'
+                        },
+                    },
+                };
+                const datePicker = new VanillaCalendar('#calendar', options);
+                datePicker.init();
+                datePicker.hide()
+                datePicker.HTMLElement.style.display = 'none'
+
+
+                pageInfoText.appendChild(id);
+                pageInfoText.appendChild(calendarDiv);
+
+                return {
+                    calendarDiv: calendar
+                }
+            }
 
             function showBottomInfo({ text }) {
                 if (text === '') {
@@ -473,13 +584,24 @@
 
             const updateCircle = () => {
 
-                const collection = appData.markers.map((marker => {
-                    const circle = turf.circle([marker.lon, marker.lat], appData.circle.radius, {
-                        steps: 50,
-                        units: 'kilometers'
+                if (appData.circle.radius === 0 || appData.selectedPin === null) {
+                    //return empty data
+                    map.getSource('circle').setData({
+                        "type": "FeatureCollection",
+                        "features": []
                     });
-                    return circle
-                }))
+                    return;
+                }
+
+                const collection = appData.markers
+                    .filter((marker) => marker.id === appData.selectedPin.id)//use only selected pin - remove to use all pins
+                    .map((marker => {
+                        const circle = turf.circle([marker.lon, marker.lat], appData.circle.radius, {
+                            steps: 50,
+                            units: 'kilometers'
+                        });
+                        return circle
+                    }))
 
                 //join geometry 
                 const joined = collection.reduce((acc, item) => {
@@ -492,7 +614,7 @@
             }
 
 
-            const loadData = () => {
+            const loadData = (apiUrl) => {
 
                 fetch(apiUrl)
                     .then(response => response.json())
@@ -500,11 +622,12 @@
                         console.log(data)
 
                         const bounds = new maplibregl.LngLatBounds();
+                        const markers = [];
                         const pins = data.map((item, id) => {
                             const [lat, lon] = item.latlon.split(',').map(parseFloat);
                             bounds.extend([lon, lat]);
 
-                            appData.markers.push({
+                            markers.push({
                                 id: id,
                                 lat,
                                 lon,
@@ -529,6 +652,10 @@
                                 }
                             }
                         })
+
+                        appData.markers = markers;
+                        appData.selectedPin = null
+
                         const geojson = {
                             "type": "FeatureCollection",
                             "features": pins
@@ -537,15 +664,6 @@
                         map.fitBounds(bounds, {
                             padding: 100,
                         });
-
-                        // Calculate center from bounds
-                        // const { _ne, _sw } = bounds;
-                        // const ne = _ne.toArray(); // North-east coordinates [lng, lat]
-                        // const sw = _sw.toArray(); // South-west coordinates [lng, lat]
-                        // const centerLng = (ne[0] + sw[0]) / 2;
-                        // const centerLat = (ne[1] + sw[1]) / 2;
-                        // const center = new maplibregl.LngLat(centerLng, centerLat);
-                        // map.panTo(center, { zoom: 17 });
 
                         renderItemsMenu(appData.markers);
                         createCircle();
@@ -564,7 +682,7 @@
                     updateCircle();
                 });
                 const label = document.createElement('label');
-                label.textContent = 'Enable Geofencing';
+                label.textContent = 'Base station coverage';
                 label.style.cursor = 'pointer';
                 label.htmlFor = 'circle-selection';
 
@@ -577,22 +695,27 @@
                 radiusSlider.addEventListener('input', (e) => {
                     appData.circle.radius = parseInt(e.target.value);
                     updateCircle();
+                    to.textContent = `${appData.circle.radius}km`;
                 });
                 radiusSliderDiv.appendChild(radiusSlider);
+
+                const from = document.createElement('div');
+                from.textContent = '0';
+                const to = document.createElement('div');
+                to.textContent = `${appData.circle.radius}km`;
+                to.style.marginRight = '-5x';
 
                 const numbers = document.createElement('div');
                 numbers.style.display = 'flex';
                 numbers.style.justifyContent = 'space-between';
-                numbers.innerHTML = `
-                    <div>0</div>
-                    <div style="margin-right:-5px;">10km</div>
-                `;
+                numbers.appendChild(from);
+                numbers.appendChild(to);
 
+                circleSelectionDiv.innerHTML = '' // clear prev
                 circleSelectionDiv.appendChild(input);
                 circleSelectionDiv.appendChild(label);
                 circleSelectionDiv.appendChild(radiusSliderDiv);
                 circleSelectionDiv.appendChild(numbers);
-
             }
 
             const renderItemsMenu = (data, selected) => {
