@@ -6,18 +6,19 @@
     <title>MapLibre Demotile - OMT</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 
-    <script src='js/maplibre-gl.js' defer></script>
-    <link href='js/maplibre-gl.css' rel='stylesheet' />
-    <script src="js/measure.js"></script>
-    <script src="js/turf.js"></script>
+    <script src='/js/maplibre-gl.js' defer></script>
+    <link href='/js/maplibre-gl.css' rel='stylesheet' />
+    <script src="/js/measure.js"></script>
+    <script src="/js/turf.js"></script>
 
-    <link href="js/vanilla-calendar.min.css" rel="stylesheet">
-    <script src="js/vanilla-calendar.min.js" defer></script>
+    <link href="/js/vanilla-calendar.min.css" rel="stylesheet">
+    <script src="/js/vanilla-calendar.min.js" defer></script>
 
-    <link rel="preload" href="icons/comment.svg" as="image">
-    <link rel="preload" href="icons/voice.svg" as="image">
-    <link rel="preload" href="icons/report.svg" as="image">
-    <link rel="preload" href="icons/sms.svg" as="image">
+    <link rel="preload" href="/icons/comment.svg" as="image">
+    <link rel="preload" href="/icons/voice.svg" as="image">
+    <link rel="preload" href="/icons/report.svg" as="image">
+    <link rel="preload" href="/icons/sms.svg" as="image">
+
 
     <style>
         body {
@@ -182,7 +183,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             class AppData {
                 constructor() {
-                    this.markers = [];
+                    this._markers = [];
+                    this._liid;
                     this._currentDate = new Date();
                     this.circle = {
                         radius: 1,
@@ -191,6 +193,13 @@
                     };
                     this._selectedPin = null;
                     this._selectedPinChangeListener = null;
+                }
+
+                get liid() {
+                    return this._liid;
+                }
+                set liid(newLiid) {
+                    this._liid = newLiid;
                 }
 
                 get markers() {
@@ -237,10 +246,10 @@
             updatePageInfo();
 
             const tileUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            const apiUrl = `data.json`
+            //const tileUrl = 'https://172.16.255.25:4443/tile/{z}/{x}/{y}.png';
+            const apiUrl = `https://172.16.255.25:8081/gis/select?date=20240327&liid=89898`
             const menu = document.getElementById('menu');
             const circleSelectionDiv = document.getElementById('circle-selection');
-
 
             const bottomInfo = document.getElementById('bottom-info');
             const bottomInfoText = document.getElementById('bottom-info-text');
@@ -499,8 +508,17 @@
                 });
 
                 appData.addCurrentDateChangeListener((date) => {
+
+                    const originalDate = new Date(date);
+                    const year = originalDate.getFullYear();
+                    const month = ("0" + (originalDate.getMonth() + 1)).slice(-2);
+                    const day = ("0" + originalDate.getDate()).slice(-2);
+                    const formattedDate = year + month + day;
+
                     console.log('DATE CHANGED - refetch api ', date);
-                    loadData('data1.json');
+                    console.log('formattedDate', formattedDate);
+
+                    loadData(`https://172.16.255.25:8081/gis/select?liid=${appData.liid}&date=${formattedDate}`);
                 });
             })
 
@@ -522,12 +540,14 @@
                 const id = document.createElement('div');
                 id.textContent = 'LIID: ' + liid
 
+                appData.liid = liid;
+
                 const calendarDiv = document.createElement('div');
                 calendarDiv.style.display = 'flex';
                 calendarDiv.style.cursor = 'pointer';
 
                 const calendarIcon = document.createElement('div');
-                calendarIcon.style.backgroundImage = 'url(icons/calendar.svg)';
+                calendarIcon.style.backgroundImage = 'url(/icons/calendar.svg)';
                 calendarIcon.style.backgroundSize = '100% 100%';
                 calendarIcon.style.userSelect = 'none';
 
@@ -754,7 +774,7 @@
                 const imgType = iriType === 'voice'
                     ? 'voice.svg' : iriType === 'report'
                         ? 'report.svg' : 'sms.svg';
-                const src = `icons/${imgType}`;
+                const src = `/icons/${imgType}`;
                 img.style.backgroundImage = 'url(' + src + ')'
                 img.style.backgroundSize = '100% 100%'
                 img.style.width = '20px';
@@ -762,7 +782,7 @@
                 img.style.marginRight = '5px';
 
                 const commIcon = document.createElement('div');
-                commIcon.style.backgroundImage = 'url(icons/comment.svg)'
+                commIcon.style.backgroundImage = 'url(/icons/comment.svg)'
                 commIcon.style.backgroundSize = '100% 100%'
                 commIcon.style.width = '20px';
                 commIcon.style.height = '20px';
