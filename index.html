@@ -18,6 +18,7 @@
     <link rel="preload" href="/icons/voice.svg" as="image">
     <link rel="preload" href="/icons/report.svg" as="image">
     <link rel="preload" href="/icons/sms.svg" as="image">
+    <link rel="preload" href="/icons/pin.png" as="image">
 
 
     <style>
@@ -243,11 +244,9 @@
             // Example usage:
             appData = new AppData();
 
-            updatePageInfo();
-
             //const tileUrl = 'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png';
             const tileUrl = 'https://172.16.255.25:4443/tile/{z}/{x}/{y}.png';
-            const apiUrl = `https://172.16.255.25:8081/gis/select?date=20240327&liid=89898`
+            const apiUrl = `https://172.16.255.25:8081/gis/select?`
             const menu = document.getElementById('menu');
             const circleSelectionDiv = document.getElementById('circle-selection');
 
@@ -281,11 +280,12 @@
             };
 
             // Initialise the map
-            const map = new maplibregl.Map({
+            map = new maplibregl.Map({
                 container: 'map',
                 style: style,
                 center: { lng: 96.01259488396033, lat: 19.531402305502922 },
-                zoom: 0
+                zoom: 0,
+                maxZoom: 18,
             });
 
             // Add the navigation control
@@ -466,7 +466,13 @@
                     appData.selectedPin = { id };
                 });
 
-                loadData(apiUrl);
+                //loadData(apiUrl + `&liid=${appData.liid}&date=${formattedDate}`);
+                appData.addCurrentDateChangeListener((date) => {
+
+                    console.log('date', date);
+                    console.log('appData.liid', appData.liid);
+                    loadData(apiUrl + `&liid=${appData.liid}&date=${date}`);
+                });
 
                 appData.addSelectedPinChangeListener((newPin) => {
                     console.log('newPin', newPin);
@@ -496,7 +502,7 @@
                         renderItemsMenu(appData.markers, id);
                         map.flyTo({
                             center: [lon, lat],
-                            zoom: map.getZoom()
+                            zoom: map.getZoom(),
                         })
                         console.log('selected', selected);
                         const text = `${lat}, ${lon}, ${title} ${comment ? comment : ""}`
@@ -507,19 +513,7 @@
                     updateCircle();
                 });
 
-                appData.addCurrentDateChangeListener((date) => {
-
-                    const originalDate = new Date(date);
-                    const year = originalDate.getFullYear();
-                    const month = ("0" + (originalDate.getMonth() + 1)).slice(-2);
-                    const day = ("0" + originalDate.getDate()).slice(-2);
-                    const formattedDate = year + month + day;
-
-                    console.log('DATE CHANGED - refetch api ', date);
-                    console.log('formattedDate', formattedDate);
-
-                    loadData(`https://172.16.255.25:8081/gis/select?liid=${appData.liid}&date=${formattedDate}`);
-                });
+                updatePageInfo();
             })
 
             closeInfo.addEventListener('click', () => {
@@ -531,16 +525,24 @@
                 const pageInfo = document.getElementById('page-info');
                 const pageInfoText = document.getElementById('page-info-text');
 
+                const originalDate = new Date();
+                const year = originalDate.getFullYear();
+                const month = ("0" + (originalDate.getMonth() + 1)).slice(-2);
+                const day = ("0" + originalDate.getDate()).slice(-2);
+                const formattedDate = year + month + day;
+
                 const params = new URLSearchParams(document.location.search);
                 const liid = params.get("liid") || ""
-                const date = params.get("date") || ""
+                const linkDate = params.get("date") || formattedDate //or today
 
-                pageInfo.style.display = 'block';
-
-                const id = document.createElement('div');
-                id.textContent = 'LIID: ' + liid
+                console.log('-=updatePageInfo=-', liid, linkDate);
 
                 appData.liid = liid;
+                appData.currentDate = linkDate; //this will trigger fetching api data
+
+                pageInfo.style.display = 'block';
+                const id = document.createElement('div');
+                id.textContent = 'LIID: ' + liid
 
                 const calendarDiv = document.createElement('div');
                 calendarDiv.style.display = 'flex';
@@ -569,8 +571,14 @@
                 const options = {
                     actions: {
                         clickDay(event, self) {
-                            appData.currentDate = self.selectedDates[0];
+
                             const date = new Date(self.selectedDates[0]);
+                            const year = date.getFullYear();
+                            const month = ("0" + (date.getMonth() + 1)).slice(-2);
+                            const day = ("0" + date.getDate()).slice(-2);
+                            appData.currentDate = year + month + day;
+
+
                             const formattedDate = date.toISOString().slice(0, 10);
                             calendar.textContent = `Date: ` + formattedDate
                             datePicker.hide()
@@ -633,10 +641,10 @@
 
             }
 
+            function loadData(apiLink) {
 
-            const loadData = (apiUrl) => {
-
-                fetch(apiUrl)
+                console.log('apiLink', apiLink);
+                fetch(apiLink)
                     .then(response => response.json())
                     .then(data => {
                         console.log(data)
@@ -681,7 +689,8 @@
                             "features": pins
                         };
                         map.getSource('points').setData(geojson);
-                        map.fitBounds(bounds, {
+
+                        pins.length > 0 && map.fitBounds(bounds, {
                             padding: 100,
                         });
 
