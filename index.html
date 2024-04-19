@@ -284,7 +284,7 @@
                 container: 'map',
                 style: style,
                 center: { lng: 96.01259488396033, lat: 19.531402305502922 },
-                zoom: 0,
+                zoom: 13,
                 maxZoom: 18,
             });
 
@@ -370,7 +370,7 @@
                         "features": []
                     },
                     cluster: true,
-                    clusterMaxZoom: 20, // Max zoom to cluster points on
+                    clusterMaxZoom: 17, // Max zoom to cluster points on
                     clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
                 });
 
@@ -438,7 +438,7 @@
 
                         map.easeTo({
                             center: features[0].geometry.coordinates,
-                            zoom: zoom
+                            zoom: 10
                         });
                     });
                 });
