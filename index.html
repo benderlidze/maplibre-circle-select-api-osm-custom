@@ -692,8 +692,10 @@
 
                         pins.length > 0 && map.fitBounds(bounds, {
                             padding: 100,
+                            duration: 0
                         });
 
+                        if (map.getZoom() > 14) map.setZoom(14); //set default zoom to 14
                         renderItemsMenu(appData.markers);
                         createCircle();
                     })
