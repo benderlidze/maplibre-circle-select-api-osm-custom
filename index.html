@@ -696,6 +696,8 @@
                         });
 
                         if (map.getZoom() > 14) map.setZoom(14); //set default zoom to 14
+                        //map.once('moveend',()=>{})
+
                         renderItemsMenu(appData.markers);
                         createCircle();
                     })
